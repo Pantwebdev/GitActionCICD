@@ -80,7 +80,7 @@ jobs:
         env:
           GHCR_USERNAME: ${{ secrets.GHCR_USERNAME }}
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
-          IMAGE_NAME: ghcr.io/${{ github.repository }}:latest
+          IMAGE_NAME: ghcr.io/pantwebdev/gitactioncicd:latest
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
@@ -88,8 +88,12 @@ jobs:
           port: 22
           envs: GHCR_USERNAME,GHCR_TOKEN,IMAGE_NAME
           script: |
-            echo "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
-            docker pull "$IMAGE_NAME"
-            docker rm -f hello-welcome 2>/dev/null || true
-            docker run -d --name hello-welcome --restart unless-stopped -p 80:8080 "$IMAGE_NAME"
-            docker image prune -f
+            set -eu
+            test -n "$GHCR_USERNAME" || { echo "GHCR_USERNAME secret is empty"; exit 1; }
+            test -n "$GHCR_TOKEN" || { echo "GHCR_TOKEN secret is empty"; exit 1; }
+            sudo docker info
+            echo "$GHCR_TOKEN" | sudo docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+            sudo docker pull "$IMAGE_NAME"
+            sudo docker rm -f hello-welcome 2>/dev/null || true
+            sudo docker run -d --name hello-welcome --restart unless-stopped -p 80:8080 "$IMAGE_NAME"
+            sudo docker image prune -f
